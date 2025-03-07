@@ -1,0 +1,233 @@
+{
+    "source": "reference/r1.html",
+    "extraction_time": "1741315309.5811913",
+    "categories": {
+        "護理常規紀錄": {
+            "total_videos": 6,
+            "videos": [
+                {
+                    "url": "https://youtu.be/WVz0Y9Q76PA",
+                    "title": "住民資料與管路",
+                    "safe_title": "住民資料與管路",
+                    "resolution": "720p",
+                    "filename": "住民資料與管路_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/o9IwzC9EKyA",
+                    "title": "日服務量表",
+                    "safe_title": "日服務量表",
+                    "resolution": "480p",
+                    "filename": "日服務量表_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/K_9lbUclkjQ",
+                    "title": "檢驗報告與警示系統",
+                    "safe_title": "檢驗報告與警示系統",
+                    "resolution": "480p",
+                    "filename": "檢驗報告與警示系統_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/L7JqPryxA3k",
+                    "title": "生理數值",
+                    "safe_title": "生理數值",
+                    "resolution": "480p",
+                    "filename": "生理數值_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/NjRPh3OMTBM",
+                    "title": "各項評估表",
+                    "safe_title": "各項評估表",
+                    "resolution": "720p",
+                    "filename": "各項評估表_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/3_x7_sLGirA",
+                    "title": "新增用藥及給藥",
+                    "safe_title": "新增用藥及給藥",
+                    "resolution": "720p",
+                    "filename": "新增用藥及給藥_720p.mp4"
+                }
+            ]
+        },
+        "品質監測紀錄": {
+            "total_videos": 25,
+            "videos": [
+                {
+                    "url": "https://youtu.be/f98cH9Gwgg4",
+                    "title": "非計畫體重改變紀錄",
+                    "safe_title": "非計畫體重改變紀錄",
+                    "resolution": "720p",
+                    "filename": "非計畫體重改變紀錄_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/hJ_kXvMd6xI",
+                    "title": "非計畫轉急性並住院紀錄",
+                    "safe_title": "非計畫轉急性並住院紀錄",
+                    "resolution": "720p",
+                    "filename": "非計畫轉急性並住院紀錄_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/i-adT__r7hc",
+                    "title": "約束紀錄",
+                    "safe_title": "約束紀錄",
+                    "resolution": "720p",
+                    "filename": "約束紀錄_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/yTvGhfdi8Qw",
+                    "title": "跌倒紀錄",
+                    "safe_title": "跌倒紀錄",
+                    "resolution": "720p",
+                    "filename": "跌倒紀錄_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/QZeCTmbx-L8",
+                    "title": "疼痛紀錄",
+                    "safe_title": "疼痛紀錄",
+                    "resolution": "480p",
+                    "filename": "疼痛紀錄_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/TC6M9pCkkBY",
+                    "title": "鼻胃管移除",
+                    "safe_title": "鼻胃管移除",
+                    "resolution": "720p",
+                    "filename": "鼻胃管移除_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/mWgcWqCf3uQ",
+                    "title": "導尿管移除",
+                    "safe_title": "導尿管移除",
+                    "resolution": "720p",
+                    "filename": "導尿管移除_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/ysN4FxV2cjE",
+                    "title": "壓傷紀錄",
+                    "safe_title": "壓傷紀錄",
+                    "resolution": "720p",
+                    "filename": "壓傷紀錄_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/WVz0Y9Q76PA",
+                    "title": "住民資料與管路",
+                    "safe_title": "住民資料與管路",
+                    "resolution": "720p",
+                    "filename": "住民資料與管路_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/o9IwzC9EKyA",
+                    "title": "日服量表",
+                    "safe_title": "日服量表",
+                    "resolution": "480p",
+                    "filename": "日服量表_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/K_9lbUclkjQ",
+                    "title": "檢驗報告與警示系統",
+                    "safe_title": "檢驗報告與警示系統",
+                    "resolution": "480p",
+                    "filename": "檢驗報告與警示系統_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/L7JqPryxA3k",
+                    "title": "生理數值",
+                    "safe_title": "生理數值",
+                    "resolution": "480p",
+                    "filename": "生理數值_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/NjRPh3OMTBM",
+                    "title": "各項評估表",
+                    "safe_title": "各項評估表",
+                    "resolution": "720p",
+                    "filename": "各項評估表_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/3_x7_sLGirA",
+                    "title": "新增用藥及給藥",
+                    "safe_title": "新增用藥及給藥",
+                    "resolution": "720p",
+                    "filename": "新增用藥及給藥_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/wyCHp8mfpKE",
+                    "title": "紀錄與計畫",
+                    "safe_title": "紀錄與計畫",
+                    "resolution": "720p",
+                    "filename": "紀錄與計畫_720p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/luevUpH28X0",
+                    "title": "血糖胰島素注射",
+                    "safe_title": "血糖胰島素注射",
+                    "resolution": "480p",
+                    "filename": "血糖胰島素注射_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/SGUeaNwOLfw",
+                    "title": "醫生巡診",
+                    "safe_title": "醫生巡診",
+                    "resolution": "480p",
+                    "filename": "醫生巡診_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/Onb6TtbY6YU",
+                    "title": "尿失禁及如廁訓練",
+                    "safe_title": "尿失禁及如廁訓練",
+                    "resolution": "480p",
+                    "filename": "尿失禁及如廁訓練_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/Ta7CqZKNqLw",
+                    "title": "傷口評估及追蹤",
+                    "safe_title": "傷口評估及追蹤",
+                    "resolution": "480p",
+                    "filename": "傷口評估及追蹤_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/7b7iSzDh8pU",
+                    "title": "慢籤藥事諮詢",
+                    "safe_title": "慢籤藥事諮詢",
+                    "resolution": "480p",
+                    "filename": "慢籤藥事諮詢_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/-9TbnH4Wnhc",
+                    "title": "整合性計畫",
+                    "safe_title": "整合性計畫",
+                    "resolution": "480p",
+                    "filename": "整合性計畫_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/ve7zm0NnxWo",
+                    "title": "個案研討會",
+                    "safe_title": "個案研討會",
+                    "resolution": "480p",
+                    "filename": "個案研討會_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/TG57GLJV4G4",
+                    "title": "異常事件通報",
+                    "safe_title": "異常事件通報",
+                    "resolution": "480p",
+                    "filename": "異常事件通報_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/5_nbM3TcatA",
+                    "title": "隔離室紀錄",
+                    "safe_title": "隔離室紀錄",
+                    "resolution": "480p",
+                    "filename": "隔離室紀錄_480p.mp4"
+                },
+                {
+                    "url": "https://youtu.be/sM7um6Sccek",
+                    "title": "護理紀錄接續列印",
+                    "safe_title": "護理紀錄接續列印",
+                    "resolution": "480p",
+                    "filename": "護理紀錄接續列印_480p.mp4"
+                }
+            ]
+        }
+    }
+}
