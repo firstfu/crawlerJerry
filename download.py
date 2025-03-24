@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
 import hashlib
 import json
 import logging
 import os
 import random
+import shutil
 import time
 from pathlib import Path
 
@@ -82,14 +84,15 @@ def download_video(video_info, category_dir, downloaded_urls):
 
     # 設置 yt-dlp 選項
     ydl_opts = {
-        # 下載最高品質 - 優先選擇 mp4 格式，如果沒有則選擇最佳品質
-        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        # 下載單一 mp4 文件（不分離音頻和視頻）
+        "format": "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
         "outtmpl": str(category_dir / f"{title}.%(ext)s"),
+        "merge_output_format": "mp4",  # 強制合併為 mp4
         "noplaylist": True,
         "quiet": False,
         "no_warnings": False,
         "ignoreerrors": True,
-        "writethumbnail": True,  # 同時下載縮略圖
+        "writethumbnail": False,  # 不下載縮略圖
         # 防爬蟲設置
         "source_address": "0.0.0.0",  # 綁定到所有接口
         "sleep_interval": random.uniform(1, 3),  # 下載間隔
@@ -100,10 +103,6 @@ def download_video(video_info, category_dir, downloaded_urls):
         "fragment_retries": 10,
         "file_access_retries": 5,
         "extractor_retries": 5,
-        # 限速設置（可選，根據需要啟用）
-        # 'ratelimit': 1000000,  # 限制下載速度，單位為字節/秒
-        # 代理設置（如果需要）
-        # 'proxy': 'socks5://127.0.0.1:1080',
         # 使用者代理（隨機選擇一個 - 防爬蟲）
         "user-agent": random.choice(
             [
@@ -116,6 +115,12 @@ def download_video(video_info, category_dir, downloaded_urls):
         # 其他設置
         "geo_bypass": True,  # 嘗試繞過地理限制
         "geo_bypass_country": "TW",  # 台灣
+        "postprocessors": [
+            {
+                "key": "FFmpegVideoConvertor",
+                "preferedformat": "mp4",  # 確保轉換為 mp4
+            }
+        ],
     }
 
     try:
@@ -146,8 +151,101 @@ def download_video(video_info, category_dir, downloaded_urls):
         return False
 
 
+def clean_directory(directory):
+    """清理目錄中的非 mp4 文件"""
+    cleaned_count = 0
+    try:
+        for file_path in directory.glob("**/*"):
+            if file_path.is_file() and file_path.suffix.lower() not in [".mp4", ".json", ".txt"]:
+                logger.info(f"刪除多餘文件: {file_path}")
+                file_path.unlink()
+                cleaned_count += 1
+    except Exception as e:
+        logger.error(f"清理目錄時出錯: {e}")
+
+    return cleaned_count
+
+
+def check_download_integrity():
+    """檢查下載完整性，修復問題下載"""
+    logger.info("檢查已下載視頻的完整性...")
+
+    fixed_count = 0
+    # 載入 YouTube 鏈接
+    json_file = "youtube_links.json"
+    links_data = load_json(json_file)
+
+    if not links_data:
+        logger.error(f"無法載入 {json_file}")
+        return fixed_count
+
+    # 載入已下載的視頻 URL
+    downloaded_urls = get_downloaded_urls()
+    urls_to_remove = []
+
+    # 檢查每個標記為已下載的 URL
+    for url in downloaded_urls:
+        found = False
+        title = None
+        category_dir = None
+
+        # 尋找 URL 對應的視頻信息
+        for category_name, category_data in links_data.get("categories", {}).items():
+            videos = category_data.get("videos", [])
+            for video in videos:
+                if video.get("url") == url:
+                    title = video.get("safe_title", video.get("title", ""))
+                    category_dir = DOWNLOAD_DIR / category_name
+                    found = True
+                    break
+            if found:
+                break
+
+        if not found or not title or not category_dir:
+            logger.warning(f"找不到 URL 的相關信息: {url}, 將其標記為未下載")
+            urls_to_remove.append(url)
+            continue
+
+        # 檢查是否有完整的 mp4 文件
+        expected_file = category_dir / f"{title}.mp4"
+        part_files = list(category_dir.glob(f"{title}.*part"))
+        webp_files = list(category_dir.glob(f"{title}.webp"))
+        m4a_files = list(category_dir.glob(f"{title}.*.m4a"))
+        mp4_segments = list(category_dir.glob(f"{title}.f*.mp4"))
+
+        # 檢查 mp4 文件是否存在且大小大於 1MB
+        if not expected_file.exists() or expected_file.stat().st_size < 1024 * 1024:
+            logger.warning(f"視頻文件不完整或不存在: {expected_file}")
+
+            # 如果存在部分下載，刪除它們
+            for part_file in part_files + webp_files + m4a_files + mp4_segments:
+                logger.info(f"刪除部分下載: {part_file}")
+                part_file.unlink(missing_ok=True)
+
+            # 標記為未下載
+            urls_to_remove.append(url)
+            fixed_count += 1
+
+    # 更新已下載列表
+    if urls_to_remove:
+        new_downloaded_urls = [url for url in downloaded_urls if url not in urls_to_remove]
+        save_json({"downloaded_urls": new_downloaded_urls}, DOWNLOADED_FILE)
+        logger.info(f"已從已下載列表中移除 {len(urls_to_remove)} 個問題視頻")
+
+    return fixed_count
+
+
 def main():
     """主函數"""
+    # 清理下載目錄中的非 mp4 文件
+    logger.info("清理下載目錄中的臨時文件和非 mp4 文件...")
+    cleaned_count = clean_directory(DOWNLOAD_DIR)
+    logger.info(f"已清理 {cleaned_count} 個多餘文件")
+
+    # 檢查下載完整性
+    fixed_count = check_download_integrity()
+    logger.info(f"已修復 {fixed_count} 個問題下載")
+
     # 載入 YouTube 鏈接
     json_file = "youtube_links.json"
     links_data = load_json(json_file)
@@ -202,6 +300,11 @@ def main():
                 logger.info(f"等待 {wait_time:.2f} 秒後繼續...")
                 time.sleep(wait_time)
 
+    # 清理下載目錄中的非 mp4 文件
+    logger.info("清理下載目錄中的臨時文件和非 mp4 文件...")
+    cleaned_count = clean_directory(DOWNLOAD_DIR)
+    logger.info(f"已清理 {cleaned_count} 個多餘文件")
+
     # 顯示總結
     logger.info(f"下載完成! 總視頻數: {total_videos}, 成功: {success_count}, 失敗: {failure_count}, 跳過(已下載): {skip_count}")
     logger.info(f"所有視頻位於: {DOWNLOAD_DIR.absolute()}")
@@ -209,7 +312,27 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        # 解析命令行參數
+        parser = argparse.ArgumentParser(description="下載 YouTube 視頻")
+        parser.add_argument("--clean", action="store_true", help="僅清理下載目錄中的非 mp4 文件")
+        parser.add_argument("--check", action="store_true", help="檢查下載完整性並修復問題")
+        args = parser.parse_args()
+
+        if args.clean:
+            # 僅執行清理
+            logger.info("執行清理操作...")
+            cleaned_count = clean_directory(DOWNLOAD_DIR)
+            logger.info(f"已清理 {cleaned_count} 個多餘文件")
+        elif args.check:
+            # 僅執行檢查和修復
+            logger.info("執行檢查和修復操作...")
+            cleaned_count = clean_directory(DOWNLOAD_DIR)
+            logger.info(f"已清理 {cleaned_count} 個多餘文件")
+            fixed_count = check_download_integrity()
+            logger.info(f"已修復 {fixed_count} 個問題下載")
+        else:
+            # 正常執行下載過程
+            main()
     except KeyboardInterrupt:
         logger.info("用戶中斷下載，程序退出。")
     except Exception as e:
