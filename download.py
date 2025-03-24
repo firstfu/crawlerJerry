@@ -25,6 +25,11 @@ DOWNLOAD_DIR.mkdir(exist_ok=True)
 DOWNLOADED_FILE = Path("downloaded.json")
 
 
+# 全局設置
+class Config:
+    force_best_quality = False
+
+
 def load_json(file_path):
     """載入 JSON 文件"""
     try:
@@ -82,10 +87,19 @@ def download_video(video_info, category_dir, downloaded_urls):
         logger.info(f"已下載過視頻: {title} - {url}")
         return True
 
+    # 從 video_info 中獲取指定的解析度（如果有）
+    preferred_resolution = video_info.get("resolution", "").lower()
+    logger.info(f"JSON 中指定的解析度: {preferred_resolution}")
+
+    # 如果設置了強制使用最高解析度，忽略 JSON 中指定的解析度
+    if Config.force_best_quality:
+        logger.info("已啟用強制最高解析度選項，將忽略 JSON 中指定的解析度")
+        preferred_resolution = ""
+
     # 設置 yt-dlp 選項
     ydl_opts = {
-        # 下載單一 mp4 文件（不分離音頻和視頻）
-        "format": "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+        # 下載最高解析度的 mp4 文件
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": str(category_dir / f"{title}.%(ext)s"),
         "merge_output_format": "mp4",  # 強制合併為 mp4
         "noplaylist": True,
@@ -136,7 +150,28 @@ def download_video(video_info, category_dir, downloaded_urls):
                     available_resolutions.add(f"{fmt.get('height')}p")
 
             if available_resolutions:
-                logger.info(f"可用解析度: {', '.join(sorted(available_resolutions, key=lambda x: int(x[:-1]), reverse=True))}")
+                available_resolutions_sorted = sorted(available_resolutions, key=lambda x: int(x[:-1]), reverse=True)
+                logger.info(f"可用解析度: {', '.join(available_resolutions_sorted)}")
+                highest_resolution = available_resolutions_sorted[0]
+                logger.info(f"最高可用解析度: {highest_resolution}")
+
+                # 確定要下載的解析度
+                target_resolution = highest_resolution  # 預設使用最高解析度
+
+                # 如果指定了偏好解析度且不是強制使用最高解析度，檢查是否可用
+                if preferred_resolution and preferred_resolution in available_resolutions and not Config.force_best_quality:
+                    target_resolution = preferred_resolution
+                    logger.info(f"使用指定解析度: {target_resolution}")
+                else:
+                    logger.info(f"使用最高可用解析度: {target_resolution}")
+
+                # 提取解析度數值並更新下載格式
+                resolution_value = target_resolution.rstrip("p")
+                if resolution_value.isdigit():
+                    # 更新下載格式以精確匹配目標解析度
+                    ydl_opts["format"] = f"bestvideo[height={resolution_value}][ext=mp4]+bestaudio[ext=m4a]/best[height={resolution_value}][ext=mp4]/best"
+                    # 重新創建 YoutubeDL 實例以應用新設置
+                    ydl = yt_dlp.YoutubeDL(ydl_opts)
 
             # 開始下載
             ydl.download([url])
@@ -316,6 +351,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description="下載 YouTube 視頻")
         parser.add_argument("--clean", action="store_true", help="僅清理下載目錄中的非 mp4 文件")
         parser.add_argument("--check", action="store_true", help="檢查下載完整性並修復問題")
+        parser.add_argument("--best-quality", action="store_true", help="強制下載所有視頻的最高解析度版本")
         args = parser.parse_args()
 
         if args.clean:
@@ -332,6 +368,10 @@ if __name__ == "__main__":
             logger.info(f"已修復 {fixed_count} 個問題下載")
         else:
             # 正常執行下載過程
+            if args.best_quality:
+                logger.info("強制下載所有視頻的最高解析度版本")
+                # 設置全局配置
+                Config.force_best_quality = True
             main()
     except KeyboardInterrupt:
         logger.info("用戶中斷下載，程序退出。")
