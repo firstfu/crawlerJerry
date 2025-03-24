@@ -1,87 +1,216 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import hashlib
 import json
+import logging
 import os
+import random
+import time
+from pathlib import Path
 
-from yt_dlp import YoutubeDL
+import yt_dlp
+
+# 設置日誌
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", handlers=[logging.FileHandler("download_log.txt"), logging.StreamHandler()])
+logger = logging.getLogger(__name__)
+
+# 創建下載目錄
+DOWNLOAD_DIR = Path("downloads")
+DOWNLOAD_DIR.mkdir(exist_ok=True)
+
+# 已下載的視頻記錄文件
+DOWNLOADED_FILE = Path("downloaded.json")
 
 
-def load_video_data(json_file='youtube_links.json'):
-    """載入 JSON 檔案中的影片資訊"""
+def load_json(file_path):
+    """載入 JSON 文件"""
     try:
-        with open(json_file, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        print(f"讀取 JSON 檔案時發生錯誤: {e}")
+        logger.error(f"載入 JSON 文件時出錯: {e}")
         return None
 
-def download_video(video_info):
-    """下載單一影片"""
-    url = video_info['url']
-    resolution = video_info['resolution']
-    filename = video_info['filename']
-    target_height = int(resolution[:-1])  # 將 "720p" 轉換為 720
 
-    # 設定 yt-dlp 的選項
+def save_json(data, file_path):
+    """保存 JSON 文件"""
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception as e:
+        logger.error(f"保存 JSON 文件時出錯: {e}")
+        return False
+
+
+def get_downloaded_urls():
+    """獲取已下載的視頻 URL 列表"""
+    if DOWNLOADED_FILE.exists():
+        downloaded_data = load_json(DOWNLOADED_FILE)
+        if downloaded_data and isinstance(downloaded_data, dict):
+            return downloaded_data.get("downloaded_urls", [])
+    return []
+
+
+def add_downloaded_url(url):
+    """添加已下載的視頻 URL"""
+    downloaded_urls = get_downloaded_urls()
+    if url not in downloaded_urls:
+        downloaded_urls.append(url)
+        save_json({"downloaded_urls": downloaded_urls}, DOWNLOADED_FILE)
+
+
+def get_url_hash(url):
+    """獲取 URL 的哈希值，用於檢查是否已下載"""
+    return hashlib.md5(url.encode("utf-8")).hexdigest()
+
+
+def download_video(video_info, category_dir, downloaded_urls):
+    """下載單個視頻"""
+    url = video_info.get("url")
+    title = video_info.get("safe_title", video_info.get("title", ""))
+
+    if not url or not title:
+        logger.warning(f"缺少 URL 或標題: {video_info}")
+        return False
+
+    # 檢查是否已下載
+    if url in downloaded_urls:
+        logger.info(f"已下載過視頻: {title} - {url}")
+        return True
+
+    # 設置 yt-dlp 選項
     ydl_opts = {
-        'format': f'best[ext=mp4][height={target_height}]/best[height={target_height}]/best[ext=mp4][height<={target_height}]',
-        'outtmpl': filename,
-        'quiet': False,
-        'no_warnings': False,
-        'verbose': True,
+        # 下載最高品質 - 優先選擇 mp4 格式，如果沒有則選擇最佳品質
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "outtmpl": str(category_dir / f"{title}.%(ext)s"),
+        "noplaylist": True,
+        "quiet": False,
+        "no_warnings": False,
+        "ignoreerrors": True,
+        "writethumbnail": True,  # 同時下載縮略圖
+        # 防爬蟲設置
+        "source_address": "0.0.0.0",  # 綁定到所有接口
+        "sleep_interval": random.uniform(1, 3),  # 下載間隔
+        "max_sleep_interval": 5,
+        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,  # 如果有 cookies 文件才使用
+        # 重試設置
+        "retries": 10,
+        "fragment_retries": 10,
+        "file_access_retries": 5,
+        "extractor_retries": 5,
+        # 限速設置（可選，根據需要啟用）
+        # 'ratelimit': 1000000,  # 限制下載速度，單位為字節/秒
+        # 代理設置（如果需要）
+        # 'proxy': 'socks5://127.0.0.1:1080',
+        # 使用者代理（隨機選擇一個 - 防爬蟲）
+        "user-agent": random.choice(
+            [
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+            ]
+        ),
+        # 其他設置
+        "geo_bypass": True,  # 嘗試繞過地理限制
+        "geo_bypass_country": "TW",  # 台灣
     }
 
     try:
-        with YoutubeDL(ydl_opts) as ydl:
-            # 先獲取影片資訊
-            info = ydl.extract_info(url, download=False)
-            print(f"\n可用的格式：")
-            formats_info = []
-            for f in info['formats']:
-                if 'height' in f and f['height'] is not None:
-                    format_info = {
-                        'format_id': f['format_id'],
-                        'ext': f.get('ext', 'N/A'),
-                        'height': f['height'],
-                        'vcodec': f.get('vcodec', 'N/A'),
-                        'acodec': f.get('acodec', 'N/A'),
-                    }
-                    formats_info.append(format_info)
-                    print(f"格式：{f['format_id']}, 類型：{f.get('ext', 'N/A')}, "
-                          f"解析度：{f['height']}p, 影像編碼：{f.get('vcodec', 'N/A')}, "
-                          f"音訊編碼：{f.get('acodec', 'N/A')}")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            logger.info(f"正在下載: {title} - {url}")
+            info_dict = ydl.extract_info(url, download=False)
+            available_formats = info_dict.get("formats", [])
 
-            # 下載影片
-            print(f"\n目標解析度：{target_height}p")
-            print(f"開始下載影片...")
+            # 記錄可用解析度，幫助調試
+            available_resolutions = set()
+            for fmt in available_formats:
+                if fmt.get("height"):
+                    available_resolutions.add(f"{fmt.get('height')}p")
+
+            if available_resolutions:
+                logger.info(f"可用解析度: {', '.join(sorted(available_resolutions, key=lambda x: int(x[:-1]), reverse=True))}")
+
+            # 開始下載
             ydl.download([url])
-        print(f"成功下載: {filename}")
-        return True
+            logger.info(f"成功下載: {title}")
+
+            # 標記為已下載
+            add_downloaded_url(url)
+            return True
+
     except Exception as e:
-        print(f"下載 {filename} 時發生錯誤: {e}")
+        logger.error(f"下載失敗 {title} ({url}): {e}")
         return False
 
+
 def main():
-    # 載入影片資料
-    data = load_video_data()
-    if not data:
+    """主函數"""
+    # 載入 YouTube 鏈接
+    json_file = "youtube_links.json"
+    links_data = load_json(json_file)
+
+    if not links_data:
+        logger.error(f"無法載入 {json_file}")
         return
 
-    # 建立下載目錄
-    os.makedirs('downloads', exist_ok=True)
-    os.chdir('downloads')
+    # 載入已下載的視頻 URL
+    downloaded_urls = get_downloaded_urls()
+    logger.info(f"已下載 {len(downloaded_urls)} 個視頻")
 
-    # 遍歷所有類別和影片
-    for category_name, category_data in data['categories'].items():
-        print(f"\n開始下載類別: {category_name}")
+    # 下載計數器
+    total_videos = 0
+    success_count = 0
+    failure_count = 0
+    skip_count = 0
 
-        # 建立類別目錄
-        os.makedirs(category_name, exist_ok=True)
-        os.chdir(category_name)
+    # 遍歷各個分類及其視頻
+    categories = links_data.get("categories", {})
+    for category_name, category_data in categories.items():
+        logger.info(f"處理分類: {category_name}")
 
-        for video in category_data['videos']:
-            print(f"\n正在處理: {video['title']}")
-            download_video(video)
+        # 創建分類目錄
+        category_dir = DOWNLOAD_DIR / category_name
+        category_dir.mkdir(exist_ok=True)
 
-        os.chdir('..')  # 回到上層目錄
+        # 獲取視頻列表
+        videos = category_data.get("videos", [])
+        total_videos += len(videos)
+
+        # 下載每個視頻
+        for index, video in enumerate(videos):
+            logger.info(f"處理視頻 {index + 1}/{len(videos)}: {video.get('title')}")
+
+            # 檢查是否已下載
+            if video.get("url") in downloaded_urls:
+                logger.info(f"已下載過，跳過: {video.get('title')}")
+                skip_count += 1
+                continue
+
+            # 下載視頻
+            success = download_video(video, category_dir, downloaded_urls)
+            if success:
+                success_count += 1
+            else:
+                failure_count += 1
+
+            # 每次下載後隨機等待，避免被防爬蟲機制檢測
+            if index < len(videos) - 1:  # 如果不是最後一個視頻
+                wait_time = random.uniform(5, 15)  # 隨機等待 5-15 秒
+                logger.info(f"等待 {wait_time:.2f} 秒後繼續...")
+                time.sleep(wait_time)
+
+    # 顯示總結
+    logger.info(f"下載完成! 總視頻數: {total_videos}, 成功: {success_count}, 失敗: {failure_count}, 跳過(已下載): {skip_count}")
+    logger.info(f"所有視頻位於: {DOWNLOAD_DIR.absolute()}")
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info("用戶中斷下載，程序退出。")
+    except Exception as e:
+        logger.error(f"程序執行時發生錯誤: {e}")
